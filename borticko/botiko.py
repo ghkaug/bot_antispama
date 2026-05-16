@@ -11,11 +11,6 @@ from aiogram.types import ChatPermissions
 from aiogram.utils import executor
 
 # ================== НАСТРОЙКИ ==================
-# ---- ЗАМЕНИТЕ НА ВАШИ ДАННЫЕ ----
-TOKEN = "8784853658:AAFc-K2x1QKYZIwH0m_OxPOcWg5kah6tJHc"                # Токен бота от @BotFather
-
-# ---------------------------------
-
 BLACKLIST_FILE = "bot_ids.json"
 
 # Список запрещённых слов
@@ -31,7 +26,6 @@ SPAM_INTERVAL = 10
 BOT_BAN_THRESHOLD = 0.7
 MANUAL_VERIFICATION_NEEDED = 0.5
 
-# Веса признаков (сумма = ~1.0)
 FEATURE_WEIGHTS = {
     "username_bot": 0.3,
     "username_numeric_suffix": 0.2,
@@ -288,7 +282,7 @@ async def notify_manual_check(chat_id: int, user: types.User, score: float, bot:
                 parse_mode="Markdown"
             )
 
-# ================== ОСНОВНАЯ ЛОГИКА ==================
+# ================== ОСНОВНАЯ ЛОГИКА МОДЕРАЦИИ ==================
 async def analyze_and_moderate(message: types.Message, bot: Bot):
     user = message.from_user
     chat_id = message.chat.id
@@ -361,7 +355,8 @@ async def cmd_id(message: types.Message):
         await message.answer(f"🆔 Ваш ID: `{message.from_user.id}`", parse_mode="Markdown")
 
 async def cmd_verify(message: types.Message, bot: Bot):
-    if not message.from_user.id in [admin.user.id for admin in await bot.get_chat_administrators(message.chat.id)]:
+    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in ('creator', 'administrator'):
         return
     args = message.get_args()
     if args and args.isdigit():
@@ -373,7 +368,8 @@ async def cmd_verify(message: types.Message, bot: Bot):
         await message.reply("Использование: /verify <user_id>")
 
 async def cmd_ban(message: types.Message, bot: Bot):
-    if not message.from_user.id in [admin.user.id for admin in await bot.get_chat_administrators(message.chat.id)]:
+    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in ('creator', 'administrator'):
         return
     args = message.get_args()
     if args and args.isdigit():
@@ -384,7 +380,8 @@ async def cmd_ban(message: types.Message, bot: Bot):
         await message.reply("Использование: /ban <user_id>")
 
 async def cmd_addbot(message: types.Message, bot: Bot):
-    if not message.from_user.id in [admin.user.id for admin in await bot.get_chat_administrators(message.chat.id)]:
+    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in ('creator', 'administrator'):
         return
     args = message.get_args()
     if args and args.isdigit():
@@ -395,7 +392,8 @@ async def cmd_addbot(message: types.Message, bot: Bot):
         await message.reply("Использование: /addbot <user_id>")
 
 async def cmd_removebot(message: types.Message, bot: Bot):
-    if not message.from_user.id in [admin.user.id for admin in await bot.get_chat_administrators(message.chat.id)]:
+    member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+    if member.status not in ('creator', 'administrator'):
         return
     args = message.get_args()
     if args and args.isdigit():
@@ -430,9 +428,7 @@ async def on_startup(dp: Dispatcher):
     ])
 
 if __name__ == "__main__":
-    # Создаём бота с прокси
-    bot = Bot(token=TOKEN, proxy=PROXY_URL)
+    bot = Bot()
     dp = Dispatcher(bot)
-    #dp.middleware.setup(LoggingMiddleware())
     register_handlers(dp)
     executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
